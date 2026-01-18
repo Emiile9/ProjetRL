@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 import random
 from cnn_discrete import CarCNN
+from replay_memory import ReplayMemory
 
 class DQNDiscrete():
     def __init__(self, action_space, eps_start, eps_end, eps_decay, gamma, lr):
@@ -20,7 +21,7 @@ class DQNDiscrete():
 
         self.optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=self.lr)
 
-        self.memory = []
+        self.memory = ReplayMemory(10000)
         self.steps_done = 0
 
     def select_action(self, state):
@@ -37,4 +38,5 @@ class DQNDiscrete():
                 q_values = self.policy_network(state_tensor)
 
                 action = np.argmax(q_values)
+        self.steps_done += 1
         return action 
