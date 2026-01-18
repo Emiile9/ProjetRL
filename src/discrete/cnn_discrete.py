@@ -1,25 +1,25 @@
 import torch
-import torch.nn
+import torch.nn as nn
 
-def CarCNN(nn.Module):
+class CarCNN(nn.Module):
     def __init__(self):
-        super.__init__()
+        super().__init__()
 
-        self.conv() = nn.Sequential(
-            nn.Conv2D(4, 32),
+        self.conv = nn.Sequential(
+            nn.Conv2d(4, 32, kernel_size=8, stride=4),
             nn.ReLU(),
-            nn.Conv2D(32, 64),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
             nn.ReLU(),
-            nn.Conv2D(64, 64),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.ReLU(),
         )
 
         self.fc = nn.Sequential(
-            nn.Linear(64 * 4 * 4, 512),
+            nn.Flatten(),
+            nn.Linear(64 * 5 * 5, 512),
             nn.ReLU(),
-            nn.Linear(512, 5),
-            nn.ReLU(),
+            nn.Linear(512, 5) 
         )
         
     def forward(self, x):
-            return self.fc(self.conv(x))
+        return self.fc(self.conv(x))
