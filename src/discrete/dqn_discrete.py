@@ -10,25 +10,27 @@ class DQNDiscrete():
         self.action_space = action_space
         self.epsilon = eps_start 
         self.eps_end = eps_end
-        self.eps_decay = eps_decay 
+        self.eps_start = eps_start
         self.gamma = gamma
         self.lr = lr
         self.batch_size = batch_size
         self.tau = tau
-        
+
         self.policy_network = CarCNN()
         self.target_network = CarCNN()
         
-        # FIX 1: Correct weight loading
         self.target_network.load_state_dict(self.policy_network.state_dict())
         self.target_network.eval()
 
         self.optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=self.lr)
-        # FIX 3: Define loss function
         self.loss_fn = nn.MSELoss()
 
-        self.memory = ReplayMemory(10000)
+        self.transition_memory = ReplayMemory(10000)
         self.steps_done = 0
+
+        self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu") 
+        self.policy_network.to(self.device)
+        self.target_network.to(self.device) 
 
     def select_action(self, state):
         sample = random.random()
@@ -37,33 +39,32 @@ class DQNDiscrete():
             action = random.randint(0, 4) 
         else:
             with torch.no_grad():
-                state_tensor = torch.from_numpy(state).float().unsqueeze(0)
+                state_tensor = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
                 q_values = self.policy_network(state_tensor)
                 action = q_values.argmax(dim=1).item()
         
         #Update epsilon
         if self.epsilon > self.eps_end:
-            self.epsilon *= self.eps_decay
+            self.epsilon = max(self.eps_end, self.epsilon - (self.eps_start - self.eps_end) / 100000)
             
         self.steps_done += 1
         return action
     
-    def upadte(self):
+    def update(self):
         #Entraine que si on a assez de données
-        if self.memory.get_len() < self.batch_size:
+        if self.transition_memory.get_len() < self.batch_size:
             return
         
-        batch = random.sample(self.memory.memory, self.batch_size)
+        batch = random.sample(self.transition_memory.memory, self.batch_size)
     
         # Zip le batch pour récupérer les composantes
         states, actions, rewards, next_states, dones = zip(*batch)
-
         #Conversion en tensors
-        states = torch.tensor(np.array(states), dtype=torch.float32)
-        actions = torch.tensor(actions, dtype=torch.long).unsqueeze(1)
-        rewards = torch.tensor(rewards, dtype=torch.float32).unsqueeze(1)
-        next_states = torch.tensor(np.array(next_states), dtype=torch.float32)
-        dones = torch.tensor(dones, dtype=torch.float32).unsqueeze(1)
+        states = torch.tensor(np.array(states), dtype=torch.float32).to(self.device)
+        actions = torch.tensor(actions, dtype=torch.long).unsqueeze(1).to(self.device)
+        rewards = torch.tensor(rewards, dtype=torch.float32).unsqueeze(1).to(self.device)
+        next_states = torch.tensor(np.array(next_states), dtype=torch.float32).to(self.device)
+        dones = torch.tensor(dones, dtype=torch.float32).unsqueeze(1).to(self.device)
 
         current_q = self.policy_network(states).gather(1, actions)
 
@@ -77,8 +78,16 @@ class DQNDiscrete():
         #Optimize
         self.optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.policy_network.parameters(), max_norm=1.0)
         self.optimizer.step()
 
         #update le reseau cible petit à petit 
         for target_param, policy_param in zip(self.target_network.parameters(), self.policy_network.parameters()):
             target_param.data.copy_(self.tau * policy_param.data + (1.0 - self.tau) * target_param.data)
+    
+    def save(self, filename):
+        torch.save(self.policy_network.state_dict(), filename)
+
+    def load(self, filename):
+        self.policy_network.load_state_dict(torch.load(filename))
+        self.target_network.load_state_dict(self.policy_network.state_dict())

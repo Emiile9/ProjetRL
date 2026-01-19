@@ -5,7 +5,7 @@ env = gym.make("CarRacing-v3", render_mode="human")
 
 observation, info = env.reset()
 
-for _ in range(1000):
+for _ in range(10000):
     # Action space: [steering, gas, braking] 
     # e.g., [0.5, 0.1, 0.0] is turning right while accelerating slightly
     action = env.action_space.sample() 
