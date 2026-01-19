@@ -5,7 +5,8 @@ from dqn_discrete import DQNDiscrete
 
 env = make_env(continuous=False)
 agent = DQNDiscrete(action_space=env.action_space.n)
-num_episodes = 500
+num_episodes = 2000
+stats = {"episode" : [], "reward" : [], "epsilon" : []}
 
 for e in range(num_episodes):
     state, _ = env.reset()
@@ -27,7 +28,10 @@ for e in range(num_episodes):
         
         if done:
             break
+    stats["episode"].append(e)
+    stats["reward"].append(total_reward)
+    stats["epsilon"].append(agent.epsilon)
             
     print(f"Episode {e}: Reward = {total_reward}, Epsilon = {agent.epsilon:.2f}")
     if e % 20 == 0:
-        agent.save("car_dqn_v1.pth")
+        agent.save(f"car_dqn_{e}.pth")

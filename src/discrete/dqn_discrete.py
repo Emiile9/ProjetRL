@@ -6,7 +6,7 @@ from cnn_discrete import CarCNN
 from replay_memory import ReplayMemory
 
 class DQNDiscrete():
-    def __init__(self, action_space, eps_start=0.9, eps_end=0.05, eps_decay=0.9999, gamma=0.95, lr=0.001, batch_size=64, tau = 0.005):
+    def __init__(self, action_space, eps_start=0.9, eps_end=0.05, eps_decay=0.9999, gamma=0.95, lr=0.001, batch_size=64, tau = 0.05):
         self.action_space = action_space
         self.epsilon = eps_start 
         self.eps_end = eps_end

@@ -8,7 +8,7 @@ def watch_agent(path, episodes=100):
     
     agent = DQNDiscrete(action_space=5)
     agent.load(path)
-    agent.policy_network.eval() # Set to evaluation mode
+    agent.policy_network.eval()
     
     for _ in range(episodes):
         state, _ = env.reset()
@@ -16,12 +16,9 @@ def watch_agent(path, episodes=100):
         while not done:
             device = agent.device 
 
-            # 2. Inside your loop:
             with torch.no_grad():
-                # Convert to tensor AND move to device
                 state_tensor = torch.from_numpy(np.array(state)).float().unsqueeze(0).to(device)
                 
-                # Now this will work!
                 q_values = agent.policy_network(state_tensor)
                 action = q_values.argmax().item()
             
@@ -29,4 +26,4 @@ def watch_agent(path, episodes=100):
             done = terminated or truncated
     env.close()
 
-watch_agent("/Users/emile/Desktop/IASD/TP_M2/ProjetRL/car_dqn_v1.pth")
+watch_agent("/Users/emile/Desktop/IASD/TP_M2/ProjetRL/car_dqn_160.pth")
