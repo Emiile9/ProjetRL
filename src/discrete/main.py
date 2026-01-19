@@ -1,18 +1,33 @@
 import gymnasium as gym
 
-# Use "human" to see the window, or "rgb_array" for training
-env = gym.make("CarRacing-v3", render_mode="rgb_array", continuous = False)
+from make_custom_env import make_env
+from discrete.dqn_discrete import DQNDiscrete
 
-observation, info = env.reset()
+env = make_env(continuous=False)
+agent = DQNDiscrete(action_space=env.action_space.n)
+num_episodes = 1000
 
-for _ in range(1):
-    # Action space: [steering, gas, braking] 
-    # e.g., [0.5, 0.1, 0.0] is turning right while accelerating slightly
-    action = env.action_space.sample() 
-    print(action)
-    
-    observation, reward, terminated, truncated, info = env.step(action)
-    if terminated or truncated:
-        observation, info = env.reset()
+for e in range(num_episodes):
+    state, _ = env.reset()
+    total_reward = 0
+    for t in range(10000):
+        action = agent.select_action()
 
-env.close()
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
+        
+        # 4. Store experience
+        agent.memory.push_transition((state, action, reward, next_state, done))
+        
+        # 5. Train
+        agent.update() # This now includes the target network sync logic
+        
+        state = next_state
+        total_reward += reward
+        
+        if done:
+            break
+            
+    print(f"Episode {e}: Reward = {total_reward}, Epsilon = {agent.epsilon:.2f}")
+
+agent.save("car_dqn_v1.pth")

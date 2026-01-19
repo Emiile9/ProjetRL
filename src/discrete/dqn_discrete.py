@@ -15,20 +15,21 @@ class DQNDiscrete():
         self.lr = lr
         self.batch_size = batch_size
         self.tau = tau
-        
+
         self.policy_network = CarCNN()
         self.target_network = CarCNN()
         
-        # FIX 1: Correct weight loading
         self.target_network.load_state_dict(self.policy_network.state_dict())
         self.target_network.eval()
 
         self.optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=self.lr)
-        # FIX 3: Define loss function
         self.loss_fn = nn.MSELoss()
 
         self.memory = ReplayMemory(10000)
         self.steps_done = 0
+
+        self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu") 
+        self.policy_network.to(self.device)
 
     def select_action(self, state):
         sample = random.random()
@@ -82,3 +83,10 @@ class DQNDiscrete():
         #update le reseau cible petit à petit 
         for target_param, policy_param in zip(self.target_network.parameters(), self.policy_network.parameters()):
             target_param.data.copy_(self.tau * policy_param.data + (1.0 - self.tau) * target_param.data)
+    
+    def save(self, filename):
+        torch.save(self.policy_network.state_dict(), filename)
+
+    def load(self, filename):
+        self.policy_network.load_state_dict(torch.load(filename))
+        self.target_network.load_state_dict(self.policy_network.state_dict())
