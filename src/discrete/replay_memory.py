@@ -2,7 +2,7 @@ from collections import deque
 import random
 class ReplayMemory(object):
     def __init__(self, max_len):
-        super.__init__(self)
+        super().__init__(self)
         self.memory = deque(maxlen=max_len)
 
     def push_transition(self, transition):

@@ -25,11 +25,12 @@ class DQNDiscrete():
         self.optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=self.lr)
         self.loss_fn = nn.MSELoss()
 
-        self.memory = ReplayMemory(10000)
+        self.transition_memory = ReplayMemory(10000)
         self.steps_done = 0
 
         self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu") 
         self.policy_network.to(self.device)
+        self.target_network.to(self.device) 
 
     def select_action(self, state):
         sample = random.random()
@@ -38,7 +39,7 @@ class DQNDiscrete():
             action = random.randint(0, 4) 
         else:
             with torch.no_grad():
-                state_tensor = torch.from_numpy(state).float().unsqueeze(0)
+                state_tensor = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
                 q_values = self.policy_network(state_tensor)
                 action = q_values.argmax(dim=1).item()
         
@@ -51,20 +52,19 @@ class DQNDiscrete():
     
     def upadte(self):
         #Entraine que si on a assez de données
-        if self.memory.get_len() < self.batch_size:
+        if self.transition_memory.get_len() < self.batch_size:
             return
         
-        batch = random.sample(self.memory.memory, self.batch_size)
+        batch = random.sample(self.transition_memory.memory, self.batch_size)
     
         # Zip le batch pour récupérer les composantes
         states, actions, rewards, next_states, dones = zip(*batch)
-
         #Conversion en tensors
-        states = torch.tensor(np.array(states), dtype=torch.float32)
-        actions = torch.tensor(actions, dtype=torch.long).unsqueeze(1)
-        rewards = torch.tensor(rewards, dtype=torch.float32).unsqueeze(1)
-        next_states = torch.tensor(np.array(next_states), dtype=torch.float32)
-        dones = torch.tensor(dones, dtype=torch.float32).unsqueeze(1)
+        states = torch.tensor(np.array(states), dtype=torch.float32).to(self.device)
+        actions = torch.tensor(actions, dtype=torch.long).unsqueeze(1).to(self.device)
+        rewards = torch.tensor(rewards, dtype=torch.float32).unsqueeze(1).to(self.device)
+        next_states = torch.tensor(np.array(next_states), dtype=torch.float32).to(self.device)
+        dones = torch.tensor(dones, dtype=torch.float32).unsqueeze(1).to(self.device)
 
         current_q = self.policy_network(states).gather(1, actions)
 

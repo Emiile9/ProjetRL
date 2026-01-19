@@ -1,7 +1,7 @@
 import gymnasium as gym
 
 from make_custom_env import make_env
-from discrete.dqn_discrete import DQNDiscrete
+from dqn_discrete import DQNDiscrete
 
 env = make_env(continuous=False)
 agent = DQNDiscrete(action_space=env.action_space.n)
