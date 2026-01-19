@@ -11,13 +11,13 @@ for e in range(num_episodes):
     state, _ = env.reset()
     total_reward = 0
     for t in range(10000):
-        action = agent.select_action()
+        action = agent.select_action(state)
 
         next_state, reward, terminated, truncated, _ = env.step(action)
         done = terminated or truncated
         
         # 4. Store experience
-        agent.memory.push_transition((state, action, reward, next_state, done))
+        agent.transition_memory.push_transition((state, action, reward, next_state, done))
         
         # 5. Train
         agent.update() # This now includes the target network sync logic

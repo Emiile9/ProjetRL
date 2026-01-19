@@ -50,7 +50,7 @@ class DQNDiscrete():
         self.steps_done += 1
         return action
     
-    def upadte(self):
+    def update(self):
         #Entraine que si on a assez de données
         if self.transition_memory.get_len() < self.batch_size:
             return
