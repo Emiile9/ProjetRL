@@ -10,7 +10,7 @@ class DQNDiscrete():
         self.action_space = action_space
         self.epsilon = eps_start 
         self.eps_end = eps_end
-        self.eps_decay = eps_decay 
+        self.eps_start = eps_start
         self.gamma = gamma
         self.lr = lr
         self.batch_size = batch_size
@@ -45,7 +45,7 @@ class DQNDiscrete():
         
         #Update epsilon
         if self.epsilon > self.eps_end:
-            self.epsilon *= self.eps_decay
+            self.epsilon = max(self.eps_end, self.epsilon - (self.eps_start - self.eps_end) / 100000)
             
         self.steps_done += 1
         return action
@@ -78,6 +78,7 @@ class DQNDiscrete():
         #Optimize
         self.optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.policy_network.parameters(), max_norm=1.0)
         self.optimizer.step()
 
         #update le reseau cible petit à petit 

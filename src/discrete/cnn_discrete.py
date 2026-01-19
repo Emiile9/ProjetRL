@@ -16,7 +16,7 @@ class CarCNN(nn.Module):
 
         self.fc = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(64 * 5 * 5, 512),
+            nn.Linear(64 * 4 * 4, 512),
             nn.ReLU(),
             nn.Linear(512, 5) 
         )
