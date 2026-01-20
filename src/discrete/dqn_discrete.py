@@ -45,7 +45,7 @@ class DQNDiscrete():
         
         #Update epsilon
         if self.epsilon > self.eps_end:
-            self.epsilon = max(self.eps_end, self.epsilon - (self.eps_start - self.eps_end) / 100000)
+            self.epsilon = max(self.eps_end, self.epsilon - (self.eps_start - self.eps_end) / 1000000)
             
         self.steps_done += 1
         return action
@@ -82,9 +82,12 @@ class DQNDiscrete():
         self.optimizer.step()
 
         #update le reseau cible petit à petit 
-        for target_param, policy_param in zip(self.target_network.parameters(), self.policy_network.parameters()):
-            target_param.data.copy_(self.tau * policy_param.data + (1.0 - self.tau) * target_param.data)
+        #for target_param, policy_param in zip(self.target_network.parameters(), self.policy_network.parameters()):
+        #    target_param.data.copy_(self.tau * policy_param.data + (1.0 - self.tau) * target_param.data)
     
+    def copy_weights_to_target(self):
+        self.target_network.load_state_dict(self.policy_network.state_dict())
+
     def save(self, filename):
         torch.save(self.policy_network.state_dict(), filename)
 
