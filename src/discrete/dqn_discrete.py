@@ -6,7 +6,7 @@ from cnn_discrete import CarCNN
 from replay_memory import ReplayMemory
 
 class DQNDiscrete():
-    def __init__(self, action_space, eps_start=0.9, eps_end=0.05, eps_decay=0.9999, gamma=0.95, lr=0.001, batch_size=64, tau = 0.05):
+    def __init__(self, action_space, eps_start=0.9, eps_end=0.01, eps_decay=0.9999, gamma=0.95, lr=0.0005, batch_size=64, tau = 0.05):
         self.action_space = action_space
         self.epsilon = eps_start 
         self.eps_end = eps_end
@@ -45,7 +45,7 @@ class DQNDiscrete():
         
         #Update epsilon
         if self.epsilon > self.eps_end:
-            self.epsilon = max(self.eps_end, self.epsilon - (self.eps_start - self.eps_end) / 1000000)
+            self.epsilon = max(self.eps_end, self.epsilon - (self.eps_start - self.eps_end) / 100000)
             
         self.steps_done += 1
         return action
@@ -80,10 +80,6 @@ class DQNDiscrete():
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.policy_network.parameters(), max_norm=1.0)
         self.optimizer.step()
-
-        #update le reseau cible petit à petit 
-        #for target_param, policy_param in zip(self.target_network.parameters(), self.policy_network.parameters()):
-        #    target_param.data.copy_(self.tau * policy_param.data + (1.0 - self.tau) * target_param.data)
     
     def copy_weights_to_target(self):
         self.target_network.load_state_dict(self.policy_network.state_dict())

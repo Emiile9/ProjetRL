@@ -59,6 +59,5 @@ def plot_stats(stats, title):
 
     fig.show()
 
-
-stats_0_05 = load_stats("training_stats_0_05.pkl")
-plot_stats(stats_0_05, "Training Stats")
+stats_0_05 = load_stats("training_stats.pkl")
+plot_stats(stats_0_05, "Training Stats for DQN Agent lr = 0.001, eps_min = 0.05")

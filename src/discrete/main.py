@@ -4,10 +4,10 @@ import pickle
 from make_custom_env import make_env
 from dqn_discrete import DQNDiscrete
 
-def train_agent(tau):
+def train_agent():
     env = make_env(continuous=False)
-    agent = DQNDiscrete(action_space=env.action_space.n, tau=tau)
-    num_episodes = 1000
+    agent = DQNDiscrete(action_space=env.action_space.n)
+    num_episodes = 2000
     stats = {"episode" : [], "reward" : [], "epsilon" : []}
 
     for e in range(num_episodes):
@@ -36,7 +36,7 @@ def train_agent(tau):
                 
         print(f"Episode {e}: Reward = {total_reward}, Epsilon = {agent.epsilon:.2f}")
 
-        if e % 10 == 0:
+        if e % 5 == 0:
             agent.copy_weights_to_target()
         if e % 50 == 0:
             agent.save(f"car_dqn_{str(agent.tau).replace('.', '_')}_{e}.pth")

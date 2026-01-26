@@ -28,4 +28,4 @@ def watch_agent(path, episodes=100):
         print(f"Episode {ep} finished. Score: {total_reward:.2f} | Terminated: {terminated} | Truncated: {truncated}")
     env.close()
 
-watch_agent("/Users/emile/Desktop/IASD/TP_M2/ProjetRL/car_dqn_0_05_800.pth")
+watch_agent("/Users/emile/Desktop/IASD/TP_M2/ProjetRL/car_dqn_0_05_1400.pth")
