@@ -57,7 +57,8 @@ def plot_stats(stats, title):
         legend=dict(x=0.01, y=0.99)
     )
 
-    fig.show()
+    return fig 
 
 stats_0_05 = load_stats("training_stats.pkl")
-plot_stats(stats_0_05, "Training Stats for DQN Agent lr = 0.001, eps_min = 0.05")
+fig = plot_stats(stats_0_05, "Training Stats for DQN Agent with discrete set of actions lr = 0.001, eps_min = 0.05")
+fig.show()

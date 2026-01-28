@@ -1,6 +1,5 @@
 import gymnasium as gym
 from gymnasium.wrappers import GrayscaleObservation, ResizeObservation, FrameStackObservation, MaxAndSkipObservation
-import numpy as np
 
 def make_env(continuous: bool, render_mode = "rgb_array", mode = "train"):
     if mode == "watch":

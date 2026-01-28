@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 import random
-from cnn_discrete import CarCNN
-from replay_memory import ReplayMemory
+from src.dqn.cnn_discrete import CarCNN
+from src.dqn.replay_memory import ReplayMemory
 
 class DQNDiscrete():
     def __init__(self, action_space, eps_start=0.9, eps_end=0.01, eps_decay=0.9999, gamma=0.95, lr=0.0005, batch_size=64, tau = 0.05):

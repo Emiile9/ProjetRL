@@ -1,10 +1,10 @@
 import gymnasium as gym
 import pickle
 
-from make_custom_env import make_env
-from dqn_discrete import DQNDiscrete
+from ..utils.make_custom_env import make_env
+from src.dqn.dqn_discrete import DQNDiscrete
 
-def train_agent():
+def train_agent(continuous):
     env = make_env(continuous=False)
     agent = DQNDiscrete(action_space=env.action_space.n)
     num_episodes = 2000
@@ -43,7 +43,7 @@ def train_agent():
     env.close()
     return stats
 
-stats_0_05 = train_agent()
+stats_0_05 = train_agent(continuous=True)
 
-with open("training_stats.pkl", "wb") as f:
+with open("training_stats_continuous.pkl", "wb") as f:
     pickle.dump(stats_0_05, f)
