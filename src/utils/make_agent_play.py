@@ -1,5 +1,5 @@
-from utils.make_custom_env import make_env
-from dqn_discrete import DQNDiscrete
+from make_custom_env import make_env
+from src.dqn.dqn_discrete import DQNDiscrete
 import torch
 import numpy as np
 
@@ -12,12 +12,11 @@ def watch_agent(path, episodes=100):
     for ep in range(episodes):
         state, _ = env.reset()
         done = False
-        total_reward = 0  # Track the score
+        total_reward = 0  
         
         while not done:
             device = agent.device 
             with torch.no_grad():
-                # Don't forget to normalize (/255.0) if you did it in training!
                 state_tensor = torch.from_numpy(np.array(state)).float().unsqueeze(0).to(device)
                 action = agent.policy_network(state_tensor).argmax().item()
             
