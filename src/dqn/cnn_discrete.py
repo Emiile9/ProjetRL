@@ -1,5 +1,6 @@
 import torch.nn as nn
 
+
 class CarCNN(nn.Module):
     def __init__(self):
         super().__init__()
@@ -14,11 +15,8 @@ class CarCNN(nn.Module):
         )
 
         self.fc = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(64 * 4 * 4, 512),
-            nn.ReLU(),
-            nn.Linear(512, 5) 
+            nn.Flatten(), nn.Linear(64 * 4 * 4, 512), nn.ReLU(), nn.Linear(512, 5)
         )
-        
+
     def forward(self, x):
         return self.fc(self.conv(x))

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class ActorCritic(nn.Module):
     def __init__(self):
         super().__init__()
@@ -17,14 +18,11 @@ class ActorCritic(nn.Module):
             nn.Linear(64 * 4 * 4, 512),
             nn.ReLU(),
         )
-        
+
         # Actor head: Mean values for [Steer, Gas, Brake]
-        self.actor_mu = nn.Sequential(
-            nn.Linear(512, 3), 
-            nn.Tanh() 
-        )
-        self.log_std = nn.Parameter(torch.zeros(1, 3)) 
-        
+        self.actor_mu = nn.Sequential(nn.Linear(512, 3), nn.Tanh())
+        self.log_std = nn.Parameter(torch.zeros(1, 3))
+
         # Critic head: State Value
         self.critic = nn.Linear(512, 1)
 
@@ -36,9 +34,9 @@ class ActorCritic(nn.Module):
         mu, value = self.forward(x)
         std = self.log_std.exp()
         dist = torch.distributions.Normal(mu, std)
-        
+
         action = dist.sample()
         log_prob = dist.log_prob(action).sum(axis=-1)
         entropy = dist.entropy().sum(axis=-1)
-        
+
         return action, log_prob, entropy, value
