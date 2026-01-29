@@ -1,13 +1,24 @@
 import gymnasium as gym
-from gymnasium.wrappers import GrayscaleObservation, ResizeObservation, FrameStackObservation, MaxAndSkipObservation
+from gymnasium.wrappers import (
+    GrayscaleObservation,
+    ResizeObservation,
+    FrameStackObservation,
+    MaxAndSkipObservation,
+)
 
-def make_env(continuous: bool, render_mode = "rgb_array", mode = "train"):
+
+def make_env(continuous: bool, render_mode="rgb_array", mode="train"):
     if mode == "watch":
         render_mode = "human"
         max_episode_steps = 2000
     else:
         max_episode_steps = 1000
-    env = gym.make("CarRacing-v3", render_mode=render_mode, continuous=continuous, max_episode_steps=max_episode_steps)
+    env = gym.make(
+        "CarRacing-v3",
+        render_mode=render_mode,
+        continuous=continuous,
+        max_episode_steps=max_episode_steps,
+    )
 
     env = MaxAndSkipObservation(env, skip=4)
 
@@ -18,6 +29,7 @@ def make_env(continuous: bool, render_mode = "rgb_array", mode = "train"):
     env = FrameStackObservation(env, stack_size=4)
 
     return env
+
 
 env = make_env(False)
 obs, _ = env.reset()

@@ -1,5 +1,7 @@
 from collections import deque
 import random
+
+
 class ReplayMemory(object):
     def __init__(self, max_len):
         super().__init__()
@@ -10,5 +12,6 @@ class ReplayMemory(object):
 
     def sample(self, batch_size):
         return random.sample(self.memory, batch_size)
+
     def get_len(self):
         return len(self.memory)
