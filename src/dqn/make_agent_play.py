@@ -1,4 +1,4 @@
-from make_custom_env import make_env
+from src.utils.make_custom_env import make_env
 from src.dqn.dqn_discrete import DQNDiscrete
 import torch
 import numpy as np
