@@ -48,4 +48,4 @@ def watch_ppo_agent(path, episodes=5):
 
 if __name__ == "__main__":
     # Ensure the path points to your saved .pth file
-    watch_ppo_agent("actor_critic_weights_61440.pth")
+    watch_ppo_agent("actor_critic_weights_204800.pth")
