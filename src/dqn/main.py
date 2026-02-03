@@ -60,13 +60,11 @@ def train_agent(
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
 
-            # 4. Store experience
             agent.transition_memory.push_transition(
                 (state, action, reward, next_state, done)
             )
-
-            # 5. Train
-            agent.update()  # This now includes the target network sync logic
+            
+            agent.update()
 
             state = next_state
             total_reward += reward
