@@ -16,7 +16,6 @@ class DQNDiscrete:
         gamma=0.95,
         lr=0.0005,
         batch_size=64,
-        tau=0.05,
     ):
         self.action_space = action_space
         self.epsilon = eps_start
@@ -26,7 +25,6 @@ class DQNDiscrete:
         self.gamma = gamma
         self.lr = lr
         self.batch_size = batch_size
-        self.tau = tau
 
         self.policy_network = CarCNN()
         self.target_network = CarCNN()

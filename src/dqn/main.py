@@ -5,10 +5,9 @@ from ..utils.make_custom_env import make_env
 from src.dqn.dqn_discrete import DQNDiscrete
 
 
-def train_agent():
+def train_agent(lr=0.0005, eps_start=0.9, eps_end=0.01, eps_divider=100000, num_episodes=20):
     env = make_env(continuous=False)
-    agent = DQNDiscrete(action_space=env.action_space.n)
-    num_episodes = 2000
+    agent = DQNDiscrete(action_space=env.action_space.n, lr=lr, eps_start=eps_start, eps_end=eps_end, eps_divider=eps_divider)
     stats = {"episode": [], "reward": [], "epsilon": []}
 
     for e in range(num_episodes):
