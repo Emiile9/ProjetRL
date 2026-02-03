@@ -2,8 +2,19 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+
 class PPO:
-    def __init__(self, actor_critic, trajectories, gamma=0.99, gae_lambda=0.95, clip_param=0.2, ppo_epochs=10, mini_batch_size=64, lr=3e-4):
+    def __init__(
+        self,
+        actor_critic,
+        trajectories,
+        gamma=0.99,
+        gae_lambda=0.95,
+        clip_param=0.2,
+        ppo_epochs=10,
+        mini_batch_size=64,
+        lr=3e-4,
+    ):
         self.actor_critic = actor_critic
         self.trajectories = trajectories
         self.gamma = gamma
@@ -13,12 +24,8 @@ class PPO:
         self.mini_batch_size = mini_batch_size
         self.lr = lr
         self.optimizer = torch.optim.Adam(
-                self.actor_critic.parameters(), 
-                lr=3e-4, 
-                eps=1e-5,
-                weight_decay=1e-3
-            )
-
+            self.actor_critic.parameters(), lr=3e-4, eps=1e-5, weight_decay=1e-3
+        )
 
     def collect_trajectories(self, env):
         observations = []
@@ -70,7 +77,7 @@ class PPO:
         # last_value is the predicted value of the state AFTER the rollout ends
         advantages = torch.zeros_like(rewards).to(self.device)
         last_gae_lam = 0
-        
+
         # We walk backwards from the end of the rollout to the start
         for t in reversed(range(len(rewards))):
             if t == len(rewards) - 1:
@@ -79,36 +86,46 @@ class PPO:
             else:
                 next_non_terminal = 1.0 - dones[t]
                 next_values = values[t + 1]
-                
+
             # 1. Calculate TD Error (delta)
             # delta = reward + (gamma * next_value) - current_value
-            delta = rewards[t] + self.gamma * next_values * next_non_terminal - values[t]
-            
+            delta = (
+                rewards[t] + self.gamma * next_values * next_non_terminal - values[t]
+            )
+
             # 2. Calculate GAE
             # gae = delta + (gamma * lambda * gae_from_next_step)
-            advantages[t] = last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
-            
+            advantages[t] = last_gae_lam = (
+                delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
+            )
+
         # 3. Calculate Returns (The target for the Critic network)
         returns = advantages + values
-        
+
         # 4. Standardize Advantages (Crucial for stability!)
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-        
+
         return advantages, returns
-    
+
     def update(self, s, a, lp, ret, adv):
         # s: obs, a: actions, lp: log_probs, ret: returns, adv: advantages
         for _ in range(self.ppo_epochs):
             # Create random mini-batches
             indices = np.arange(self.trajectories)
             np.random.shuffle(indices)
-            
+
             for start in range(0, self.trajectories, self.mini_batch_size):
                 end = start + self.mini_batch_size
                 idx = indices[start:end]
-                
+
                 # Fetch mini-batch
-                batch_s, batch_a, batch_lp, batch_ret, batch_adv = s[idx], a[idx], lp[idx], ret[idx], adv[idx]
+                batch_s, batch_a, batch_lp, batch_ret, batch_adv = (
+                    s[idx],
+                    a[idx],
+                    lp[idx],
+                    ret[idx],
+                    adv[idx],
+                )
 
                 # Get new policy values
                 mu, val = self.actor_critic(batch_s)
@@ -119,7 +136,10 @@ class PPO:
                 # 1. Policy Loss (Clipped)
                 ratio = torch.exp(new_lp - batch_lp)
                 surr1 = ratio * batch_adv
-                surr2 = torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param) * batch_adv
+                surr2 = (
+                    torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param)
+                    * batch_adv
+                )
                 policy_loss = -torch.min(surr1, surr2).mean()
 
                 # 2. Value Loss (MSE)

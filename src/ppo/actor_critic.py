@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+
 class ActorCritic(nn.Module):
     def __init__(self):
         super().__init__()
@@ -12,7 +13,7 @@ class ActorCritic(nn.Module):
             nn.ReLU(),
             nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.ReLU(),
-            nn.Flatten() # Crucial fix
+            nn.Flatten(),  # Crucial fix
         )
         self.fc = nn.Sequential(
             nn.Linear(64 * 4 * 4, 512),
@@ -31,4 +32,9 @@ class ActorCritic(nn.Module):
         std = self.log_std.exp()
         dist = torch.distributions.Normal(mu, std)
         action = dist.sample()
-        return action, dist.log_prob(action).sum(axis=-1), dist.entropy().sum(axis=-1), value
+        return (
+            action,
+            dist.log_prob(action).sum(axis=-1),
+            dist.entropy().sum(axis=-1),
+            value,
+        )
