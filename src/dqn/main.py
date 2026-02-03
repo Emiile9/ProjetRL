@@ -63,7 +63,7 @@ def train_agent(
             agent.transition_memory.push_transition(
                 (state, action, reward, next_state, done)
             )
-            
+
             agent.update()
 
             state = next_state
@@ -84,14 +84,11 @@ def train_agent(
     env.close()
     return stats
 
-
-stats_0_05 = train_agent(
-    lr=args.lr,
-    eps_start=args.eps_start,
-    eps_end=args.eps_end,
-    eps_divider=args.eps_divider,
-    num_episodes=args.num_episodes,
-)
-
-with open("training_stats_continuous.pkl", "wb") as f:
-    pickle.dump(stats_0_05, f)
+if __name__ == "__main__":
+    stats = train_agent(
+        lr=args.lr,
+        eps_start=args.eps_start,
+        eps_end=args.eps_end,
+        eps_divider=args.eps_divider,
+        num_episodes=args.num_episodes,
+    )

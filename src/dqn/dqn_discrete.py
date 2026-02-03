@@ -35,7 +35,7 @@ class DQNDiscrete:
         self.optimizer = torch.optim.Adam(self.policy_network.parameters(), lr=self.lr)
         self.loss_fn = nn.MSELoss()
 
-        self.transition_memory = ReplayMemory(10000)
+        self.transition_memory = ReplayMemory(50000)
         self.steps_done = 0
 
         self.device = torch.device(
