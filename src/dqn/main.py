@@ -1,13 +1,54 @@
 import gymnasium as gym
 import pickle
+import argparse
 
 from ..utils.make_custom_env import make_env
 from src.dqn.dqn_discrete import DQNDiscrete
 
+parser = argparse.ArgumentParser(
+    prog="RL Project Emile Descroix",
+    description="Training script for a DQN agent on a custom environment",
+)
 
-def train_agent(lr=0.0005, eps_start=0.9, eps_end=0.01, eps_divider=100000, num_episodes=20):
+parser.add_argument(
+    "--lr", type=float, default=0.0005, help="learning rate for the optimizer"
+)
+parser.add_argument(
+    "--eps_start",
+    type=float,
+    default=0.9,
+    help="starting epsilon for the epsilon-greedy policy",
+)
+parser.add_argument(
+    "--eps_end",
+    type=float,
+    default=0.01,
+    help="ending epsilon for the epsilon-greedy policy",
+)
+parser.add_argument(
+    "--eps_divider", type=int, default=100000, help="divisor for epsilon decay"
+)
+parser.add_argument(
+    "--num_episodes",
+    type=int,
+    default=500,
+    help="number of episodes to train the agent for",
+)
+
+args = parser.parse_args()
+
+
+def train_agent(
+    lr=0.0005, eps_start=0.9, eps_end=0.01, eps_divider=100000, num_episodes=20
+):
     env = make_env(continuous=False)
-    agent = DQNDiscrete(action_space=env.action_space.n, lr=lr, eps_start=eps_start, eps_end=eps_end, eps_divider=eps_divider)
+    agent = DQNDiscrete(
+        action_space=env.action_space.n,
+        lr=lr,
+        eps_start=eps_start,
+        eps_end=eps_end,
+        eps_divider=eps_divider,
+    )
     stats = {"episode": [], "reward": [], "epsilon": []}
 
     for e in range(num_episodes):
@@ -41,12 +82,18 @@ def train_agent(lr=0.0005, eps_start=0.9, eps_end=0.01, eps_divider=100000, num_
         if e % 5 == 0:
             agent.copy_weights_to_target()
         if e % 50 == 0:
-            agent.save(f"car_dqn_{str(agent.tau).replace('.', '_')}_{e}.pth")
+            agent.save(f"car_dqn_{args.lr}_{e}.pth")
     env.close()
     return stats
 
 
-stats_0_05 = train_agent()
+stats_0_05 = train_agent(
+    lr=args.lr,
+    eps_start=args.eps_start,
+    eps_end=args.eps_end,
+    eps_divider=args.eps_divider,
+    num_episodes=args.num_episodes,
+)
 
 with open("training_stats_continuous.pkl", "wb") as f:
     pickle.dump(stats_0_05, f)

@@ -12,7 +12,7 @@ class DQNDiscrete:
         action_space,
         eps_start=0.9,
         eps_end=0.01,
-        eps_divider = 100000,
+        eps_divider=100000,
         gamma=0.95,
         lr=0.0005,
         batch_size=64,
@@ -60,7 +60,8 @@ class DQNDiscrete:
         # Update epsilon
         if self.epsilon > self.eps_end:
             self.epsilon = max(
-                self.eps_end, self.epsilon - (self.eps_start - self.eps_end) / self.eps_divider
+                self.eps_end,
+                self.epsilon - (self.eps_start - self.eps_end) / self.eps_divider,
             )
 
         self.steps_done += 1
