@@ -39,7 +39,7 @@ args = parser.parse_args()
 
 
 def train_agent(
-    lr=0.0005, eps_start=0.9, eps_end=0.01, eps_divider=100000, num_episodes=20
+    lr=0.0005, eps_start=0.9, eps_end=0.01, eps_divider=100000, num_episodes=20, c=5
 ):
     env = make_env(continuous=False)
     agent = DQNDiscrete(
@@ -77,7 +77,7 @@ def train_agent(
 
         print(f"Episode {e}: Reward = {total_reward}, Epsilon = {agent.epsilon:.2f}")
 
-        if e % 5 == 0:
+        if e % c == 0:
             agent.copy_weights_to_target()
         if e % 50 == 0:
             agent.save(f"car_dqn_{args.lr}_{e}.pth")
