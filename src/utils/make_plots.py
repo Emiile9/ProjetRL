@@ -126,5 +126,5 @@ def plot_comparaison(files_list):
 
     return fig
 
-fig = plot_comparaison(["stats_epsdiv1000.pkl", "stats_epsdiv10000.pkl", "stats_epsdiv100000.pkl"])
+fig = plot_stats(load_stats("stats.pkl"), "Performance de l'agent DQN")
 fig.show()

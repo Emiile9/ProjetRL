@@ -1,160 +1,206 @@
+import numpy as np
+import gymnasium as gym
 import torch
 import torch.nn as nn
-import numpy as np
+import torch.optim as optim
 
-
+from .actor_critic import ActorCritic
+from .rollout_buffer import RolloutBuffer
 class PPO:
     def __init__(
         self,
-        actor_critic,
-        trajectories,
+        env,
+        lr=3e-4,
         gamma=0.99,
         gae_lambda=0.95,
-        clip_param=0.2,
-        ppo_epochs=10,
-        mini_batch_size=64,
-        lr=3e-4,
+        clip_ratio=0.2,
+        epochs=10,
+        batch_size=64,
+        value_coef=0.5,
+        entropy_coef=0.01,
+        max_grad_norm=0.5,
+        device="cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
     ):
-        self.actor_critic = actor_critic
-        self.trajectories = trajectories
+        self.env = env
         self.gamma = gamma
         self.gae_lambda = gae_lambda
-        self.clip_param = clip_param
-        self.ppo_epochs = ppo_epochs
-        self.mini_batch_size = mini_batch_size
-        self.lr = lr
-        self.optimizer = torch.optim.Adam(
-            self.actor_critic.parameters(), lr=3e-4, eps=1e-5, weight_decay=1e-3
-        )
-
-    def collect_trajectories(self, env):
-        observations = []
-        actions = []
-        rewards = []
-        dones = []
-        log_probs = []
-        values = []
-        t = 0
-
-        obs, _ = env.reset()  # Reset returns (obs, info)
-
-        while t < self.trajectories:
-            obs_t = torch.from_numpy(obs).float().unsqueeze(0).to(self.device) / 255.0
-
-            with torch.no_grad():
-                action, log_prob, _, value = self.actor_critic.get_action(obs_t)
-
-            next_obs, reward, term, trunc, _ = env.step(action.cpu().numpy()[0])
-            done = term or trunc
-
-            observations.append(obs_t.squeeze())
-            actions.append(action.squeeze())
-            rewards.append(torch.tensor(reward, device=self.device))
-            dones.append(torch.tensor(done, dtype=torch.float32, device=self.device))
-            log_probs.append(log_prob.squeeze())
-            values.append(value.squeeze())
-
-            obs = next_obs
-            if done:
-                obs, _ = env.reset()
-
-            t += 1
-
-        last_obs_t = torch.from_numpy(obs).float().unsqueeze(0).to(self.device) / 255.0
-        _, last_value = self.actor_critic(last_obs_t)
-
-        return (
-            torch.stack(observations),
-            torch.stack(actions),
-            torch.stack(rewards),
-            torch.stack(dones),
-            torch.stack(log_probs),
-            torch.stack(values),
-            last_value.detach().squeeze(),
-        )
-
-    def compute_advantages(self, rewards, values, dones, last_value):
-        # last_value is the predicted value of the state AFTER the rollout ends
-        advantages = torch.zeros_like(rewards).to(self.device)
-        last_gae_lam = 0
-
-        # We walk backwards from the end of the rollout to the start
+        self.clip_ratio = clip_ratio
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.value_coef = value_coef
+        self.entropy_coef = entropy_coef
+        self.max_grad_norm = max_grad_norm
+        self.device = device
+        
+        # Déterminer si l'environnement est continu
+        self.continuous = isinstance(env.action_space, gym.spaces.Box)
+        
+        if self.continuous:
+            self.action_dim = env.action_space.shape[0]
+        else:
+            self.action_dim = env.action_space.n
+        
+        observation_shape = env.observation_space.shape
+        
+        # Créer le réseau acteur-critique
+        self.actor_critic = ActorCritic(
+            observation_shape, self.action_dim, continuous=self.continuous
+        ).to(device)
+        
+        self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=lr)
+        
+        self.buffer = RolloutBuffer()
+    
+    def compute_gae(self, rewards, values, dones, next_value):
+        """Calcule les avantages avec GAE (Generalized Advantage Estimation)"""
+        advantages = np.zeros_like(rewards)
+        last_gae = 0
+        
         for t in reversed(range(len(rewards))):
             if t == len(rewards) - 1:
-                next_non_terminal = 1.0 - dones[t]
-                next_values = last_value
+                next_val = next_value
             else:
-                next_non_terminal = 1.0 - dones[t]
-                next_values = values[t + 1]
-
-            # 1. Calculate TD Error (delta)
-            # delta = reward + (gamma * next_value) - current_value
-            delta = (
-                rewards[t] + self.gamma * next_values * next_non_terminal - values[t]
-            )
-
-            # 2. Calculate GAE
-            # gae = delta + (gamma * lambda * gae_from_next_step)
-            advantages[t] = last_gae_lam = (
-                delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
-            )
-
-        # 3. Calculate Returns (The target for the Critic network)
+                next_val = values[t + 1]
+            
+            delta = rewards[t] + self.gamma * next_val * (1 - dones[t]) - values[t]
+            advantages[t] = last_gae = delta + self.gamma * self.gae_lambda * (1 - dones[t]) * last_gae
+        
         returns = advantages + values
-
-        # 4. Standardize Advantages (Crucial for stability!)
-        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-
         return advantages, returns
-
-    def update(self, s, a, lp, ret, adv):
-        # s: obs, a: actions, lp: log_probs, ret: returns, adv: advantages
-        for _ in range(self.ppo_epochs):
-            # Create random mini-batches
-            indices = np.arange(self.trajectories)
+    
+    def update(self):
+        """Met à jour la politique avec PPO"""
+        states, actions, rewards, old_log_probs, values, dones = self.buffer.get()
+        
+        # Calculer la valeur du dernier état
+        with torch.no_grad():
+            last_state = torch.FloatTensor(states[-1]).unsqueeze(0).to(self.device)
+            if self.continuous:
+                _, _, next_value = self.actor_critic(last_state)
+            else:
+                _, next_value = self.actor_critic(last_state)
+            next_value = next_value.cpu().numpy().flatten()[0]
+        
+        # Calculer les avantages et les retours
+        advantages, returns = self.compute_gae(rewards, values, dones, next_value)
+        
+        # Normaliser les avantages
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+        
+        # Convertir en tenseurs
+        states = torch.FloatTensor(states).to(self.device)
+        actions = torch.FloatTensor(actions).to(self.device)
+        old_log_probs = torch.FloatTensor(old_log_probs).to(self.device)
+        advantages = torch.FloatTensor(advantages).unsqueeze(-1).to(self.device)
+        returns = torch.FloatTensor(returns).unsqueeze(-1).to(self.device)
+        
+        # Optimisation PPO
+        dataset_size = len(states)
+        indices = np.arange(dataset_size)
+        
+        for _ in range(self.epochs):
             np.random.shuffle(indices)
-
-            for start in range(0, self.trajectories, self.mini_batch_size):
-                end = start + self.mini_batch_size
-                idx = indices[start:end]
-
-                # Fetch mini-batch
-                batch_s, batch_a, batch_lp, batch_ret, batch_adv = (
-                    s[idx],
-                    a[idx],
-                    lp[idx],
-                    ret[idx],
-                    adv[idx],
+            
+            for start in range(0, dataset_size, self.batch_size):
+                end = start + self.batch_size
+                batch_indices = indices[start:end]
+                
+                batch_states = states[batch_indices]
+                batch_actions = actions[batch_indices]
+                batch_old_log_probs = old_log_probs[batch_indices]
+                batch_advantages = advantages[batch_indices]
+                batch_returns = returns[batch_indices]
+                
+                # Évaluer les actions
+                log_probs, state_values, entropy = self.actor_critic.evaluate_actions(
+                    batch_states, batch_actions
                 )
-
-                # Get new policy values
-                mu, val = self.actor_critic(batch_s)
-                dist = torch.distributions.Normal(mu, self.actor_critic.log_std.exp())
-                new_lp = dist.log_prob(batch_a).sum(axis=-1)
-                entropy = dist.entropy().sum(axis=-1)
-
-                # 1. Policy Loss (Clipped)
-                ratio = torch.exp(new_lp - batch_lp)
-                surr1 = ratio * batch_adv
-                surr2 = (
-                    torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param)
-                    * batch_adv
-                )
+                
+                # Ratio de politique
+                ratio = torch.exp(log_probs - batch_old_log_probs)
+                
+                # Perte de politique (clipped)
+                surr1 = ratio * batch_advantages
+                surr2 = torch.clamp(ratio, 1 - self.clip_ratio, 1 + self.clip_ratio) * batch_advantages
                 policy_loss = -torch.min(surr1, surr2).mean()
-
-                # 2. Value Loss (MSE)
-                value_loss = nn.MSELoss()(val.squeeze(), batch_ret)
-
-                # 3. Total Loss
-                # We subtract entropy to encourage exploration
-                loss = policy_loss + 0.5 * value_loss - 0.01 * entropy.mean()
-
+                
+                # Perte de valeur
+                value_loss = nn.MSELoss()(state_values, batch_returns)
+                
+                # Perte d'entropie
+                entropy_loss = -entropy.mean()
+                
+                # Perte totale
+                loss = policy_loss + self.value_coef * value_loss + self.entropy_coef * entropy_loss
+                
+                # Mise à jour
                 self.optimizer.zero_grad()
                 loss.backward()
+                nn.utils.clip_grad_norm_(self.actor_critic.parameters(), self.max_grad_norm)
                 self.optimizer.step()
-
-    def save(self, filename):
-        torch.save(self.actor_critic.state_dict(), filename)
-
-    def load(self, filename):
-        self.actor_critic.load_state_dict(torch.load(filename))
+        
+        self.buffer.clear()
+    
+    def train(self, total_timesteps, rollout_length=2048, log_interval=10):
+        """Entraîne l'agent PPO"""
+        state, _ = self.env.reset()
+        episode_reward = 0
+        episode_count = 0
+        timestep = 0
+        episode_rewards = []
+        
+        while timestep < total_timesteps:
+            # Collecte de données
+            for _ in range(rollout_length):
+                state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+                
+                with torch.no_grad():
+                    action, log_prob, value = self.actor_critic.get_action(state_tensor)
+                
+                action_np = action.cpu().numpy()[0]
+                log_prob_np = log_prob.cpu().numpy()[0] if log_prob is not None else 0
+                value_np = value.cpu().numpy()[0][0]
+                
+                next_state, reward, done, truncated, _ = self.env.step(action_np)
+                
+                self.buffer.add(state, action_np, reward, log_prob_np, value_np, done or truncated)
+                
+                state = next_state
+                episode_reward += reward
+                timestep += 1
+                
+                if done or truncated:
+                    episode_rewards.append(episode_reward)
+                    episode_count += 1
+                    
+                    if episode_count % log_interval == 0:
+                        avg_reward = np.mean(episode_rewards[-log_interval:])
+                        print(f"Timestep: {timestep}/{total_timesteps} | "
+                              f"Episode: {episode_count} | "
+                              f"Avg Reward (last {log_interval}): {avg_reward:.2f}")
+                    
+                    state, _ = self.env.reset()
+                    episode_reward = 0
+                
+                if timestep >= total_timesteps:
+                    break
+            
+            # Mise à jour de la politique
+            self.update()
+        
+        return episode_rewards
+    
+    def save(self, filepath):
+        """Sauvegarde le modèle"""
+        torch.save({
+            'actor_critic_state_dict': self.actor_critic.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+        }, filepath)
+        print(f"Modèle sauvegardé dans {filepath}")
+    
+    def load(self, filepath):
+        """Charge le modèle"""
+        checkpoint = torch.load(filepath, map_location=self.device)
+        self.actor_critic.load_state_dict(checkpoint['actor_critic_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        print(f"Modèle chargé depuis {filepath}")

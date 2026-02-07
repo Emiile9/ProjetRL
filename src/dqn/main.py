@@ -92,3 +92,5 @@ if __name__ == "__main__":
         eps_divider=args.eps_divider,
         num_episodes=args.num_episodes,
     )
+    with open("stats.pkl", "wb") as f:
+        pickle.dump(stats, f)
