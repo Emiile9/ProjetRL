@@ -33,4 +33,4 @@ def watch_agent(path, episodes=100):
     env.close()
 
 
-watch_agent("/Users/emile/Desktop/IASD/TP_M2/ProjetRL/car_dqn_0_05_1400.pth")
+watch_agent("car_dqn_0.0005_1450.pth")
