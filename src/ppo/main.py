@@ -10,7 +10,7 @@ import pickle
 import gymnasium as gym
 import numpy as np
 
-def main():
+def main(lr=1e-4, epochs=4, batch_size=128, value_coef=0.5, entropy_coef=0.01, max_grad_norm=0.5, gae_lambda=0.95, gamma=0.99):
     # ✅ HYPERPARAMÈTRES OPTIMISÉS pour CarRacing
     CONTINUOUS = True
     TOTAL_TIMESTEPS = 2_000_000  # Plus d'entraînement
@@ -22,15 +22,15 @@ def main():
     # ✅ HYPERPARAMÈTRES AMÉLIORÉS
     agent = PPO(
         env=env,
-        lr=1e-4,              # ✅ Learning rate plus faible
-        gamma=0.99,
-        gae_lambda=0.95,
+        lr=lr,              # ✅ Learning rate plus faible
+        gamma=gamma,
+        gae_lambda=gae_lambda,
         clip_ratio=0.2,
-        epochs=4,             # ✅ Moins d'epochs (éviter overfitting)
-        batch_size=128,       # ✅ Batch plus grand
-        value_coef=0.5,
-        entropy_coef=0.01,    # ✅ Plus d'exploration
-        max_grad_norm=0.5
+        epochs=epochs,             # ✅ Moins d'epochs (éviter overfitting)
+        batch_size=batch_size,       # ✅ Batch plus grand
+        value_coef=value_coef,
+        entropy_coef=entropy_coef,    # ✅ Plus d'exploration
+        max_grad_norm=max_grad_norm
     )
     
     print("Début de l'entraînement OPTIMISÉ...")
