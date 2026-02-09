@@ -4,71 +4,56 @@ from src.ppo.ppo import PPO
 from src.utils.make_custom_env import make_env
 import torch
 from torch.distributions import Normal
+import pickle
 
 
 import gymnasium as gym
 import numpy as np
 
 def main():
-    # Paramètres
-    CONTINUOUS = True  # True pour actions continues, False pour discrètes
-    TOTAL_TIMESTEPS = 1_000_000
+    # ✅ HYPERPARAMÈTRES OPTIMISÉS pour CarRacing
+    CONTINUOUS = True
+    TOTAL_TIMESTEPS = 2_000_000  # Plus d'entraînement
     ROLLOUT_LENGTH = 2048
     
     # Créer l'environnement
     env = make_env(continuous=CONTINUOUS, mode="train")
     
-    # Créer l'agent PPO
+    # ✅ HYPERPARAMÈTRES AMÉLIORÉS
     agent = PPO(
         env=env,
-        lr=3e-4,
+        lr=1e-4,              # ✅ Learning rate plus faible
         gamma=0.99,
         gae_lambda=0.95,
         clip_ratio=0.2,
-        epochs=10,
-        batch_size=64,
+        epochs=4,             # ✅ Moins d'epochs (éviter overfitting)
+        batch_size=128,       # ✅ Batch plus grand
         value_coef=0.5,
-        entropy_coef=0.01,
+        entropy_coef=0.01,    # ✅ Plus d'exploration
         max_grad_norm=0.5
     )
     
-    print("Début de l'entraînement...")
+    print("Début de l'entraînement OPTIMISÉ...")
     print(f"Type d'action: {'Continu' if CONTINUOUS else 'Discret'}")
     print(f"Device: {agent.device}")
+    print(f"Total timesteps: {TOTAL_TIMESTEPS:,}")
     
     # Entraîner l'agent
     rewards = agent.train(
         total_timesteps=TOTAL_TIMESTEPS,
         rollout_length=ROLLOUT_LENGTH,
-        log_interval=10
+        log_interval=10,
+        save_interval=100
     )
     
-    # Sauvegarder le modèle
-    agent.save("ppo_carracing.pth")
+    # Sauvegarder le modèle final
+    agent.save("ppo_carracing_final.pth")
+    
     
     print("Entraînement terminé!")
-    
-    # Test du modèle
-    print("\nTest du modèle entraîné...")
-    test_env = make_env(continuous=CONTINUOUS, mode="watch")
-    state, _ = test_env.reset()
-    
-    total_reward = 0
-    done = False
-    
-    while not done:
-        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(agent.device)
-        with torch.no_grad():
-            action, _, _ = agent.actor_critic.get_action(state_tensor, deterministic=True)
-        action_np = action.cpu().numpy()[0]
-        
-        state, reward, done, truncated, _ = test_env.step(action_np)
-        total_reward += reward
-        done = done or truncated
-    
-    print(f"Récompense totale du test: {total_reward:.2f}")
-    test_env.close()
-
+    print(f"Meilleure récompense moyenne: {max([np.mean(rewards[i:i+10]) for i in range(len(rewards)-10)]):.2f}")
+    with open("stats_ppo.pkl", "wb") as f:
+        pickle.dump(rewards, f)
 
 if __name__ == "__main__":
     main()

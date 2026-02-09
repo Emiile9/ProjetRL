@@ -29,9 +29,9 @@ def plot_stats(stats, title):
         )
     )
 
-    fig.add_trace(
-        go.Scatter(x=df["episode"], y=df["epsilon"], name="Epsilon", yaxis="y2")
-    )
+    #fig.add_trace(
+    #    go.Scatter(x=df["episode"], y=df["epsilon"], name="Epsilon", yaxis="y2")
+    #)
 
     fig.update_layout(
         title=title,
@@ -125,6 +125,10 @@ def plot_comparaison(files_list):
     )
 
     return fig
-
-fig = plot_stats(load_stats("stats.pkl"), "Performance de l'agent DQN")
+stats = load_stats("stats_ppo.pkl")
+print(stats)
+stats_dict = {"episode": list(range(len(stats))), "reward": stats}
+fig = plot_stats(stats_dict, "Performance de l'agent PPO")
 fig.show()
+#fig = plot_stats(load_stats("stats_ppo.pkl"), "Performance de l'agent PPO")
+#fig.show()
