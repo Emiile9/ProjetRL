@@ -31,7 +31,7 @@ parser.add_argument(
 parser.add_argument(
     "--num_episodes",
     type=int,
-    default=500,
+    default=8000,
     help="number of episodes to train the agent for",
 )
 
@@ -92,5 +92,5 @@ if __name__ == "__main__":
         eps_divider=args.eps_divider,
         num_episodes=args.num_episodes,
     )
-    with open("stats.pkl", "wb") as f:
+    with open("stats_dqn_final.pkl", "wb") as f:
         pickle.dump(stats, f)

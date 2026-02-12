@@ -4,7 +4,7 @@ import time
 from src.utils.make_custom_env import make_env
 from src.ppo.ppo import PPO
 
-from src.ppo.actor_critic import ActorCritic  # Import the model class directly
+from src.ppo.actor_critic import ActorCritic  
 
 
 def watch_ppo_agent(path, episodes=5):
@@ -12,11 +12,8 @@ def watch_ppo_agent(path, episodes=5):
 
     env = make_env(render_mode="human", continuous=True)
 
-    # 1. Initialize only the Model (the "Brain")
     model = ActorCritic().to(device)
 
-    # 2. Load the weights
-    # Using weights_only=True is a good security practice in newer Torch versions
     model.load_state_dict(torch.load(path, map_location=device))
     model.eval()
 
@@ -35,9 +32,9 @@ def watch_ppo_agent(path, episodes=5):
 
             env_action = np.array(
                 [
-                    action[0],  # Steer
-                    (action[1] + 1.0) / 2.0,  # Gas
-                    (action[2] + 1.0) / 2.0,  # Brake
+                    action[0], 
+                    (action[1] + 1.0) / 2.0, 
+                    (action[2] + 1.0) / 2.0, 
                 ]
             )
 
@@ -51,5 +48,4 @@ def watch_ppo_agent(path, episodes=5):
 
 
 if __name__ == "__main__":
-    # Ensure the path points to your saved .pth file
     watch_ppo_agent("/Users/emile/Desktop/IASD/TP_M2/ProjetRL/ppo_carracing_ep5600.pth")

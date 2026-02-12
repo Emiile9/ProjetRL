@@ -11,25 +11,24 @@ import gymnasium as gym
 import numpy as np
 
 def main(lr=1e-4, epochs=4, batch_size=128, value_coef=0.5, entropy_coef=0.01, max_grad_norm=0.5, gae_lambda=0.95, gamma=0.99):
-    # ✅ HYPERPARAMÈTRES OPTIMISÉS pour CarRacing
     CONTINUOUS = True
-    TOTAL_TIMESTEPS = 2_000_000  # Plus d'entraînement
+    TOTAL_TIMESTEPS = 2_000_000 
     ROLLOUT_LENGTH = 2048
     
     # Créer l'environnement
     env = make_env(continuous=CONTINUOUS, mode="train")
     
-    # ✅ HYPERPARAMÈTRES AMÉLIORÉS
+
     agent = PPO(
         env=env,
-        lr=lr,              # ✅ Learning rate plus faible
+        lr=lr,              
         gamma=gamma,
         gae_lambda=gae_lambda,
         clip_ratio=0.2,
-        epochs=epochs,             # ✅ Moins d'epochs (éviter overfitting)
-        batch_size=batch_size,       # ✅ Batch plus grand
+        epochs=epochs,           
+        batch_size=batch_size,       
         value_coef=value_coef,
-        entropy_coef=entropy_coef,    # ✅ Plus d'exploration
+        entropy_coef=entropy_coef,   
         max_grad_norm=max_grad_norm
     )
     
@@ -55,5 +54,9 @@ def main(lr=1e-4, epochs=4, batch_size=128, value_coef=0.5, entropy_coef=0.01, m
     with open("stats_ppo.pkl", "wb") as f:
         pickle.dump(rewards, f)
 
+    return rewards
+
 if __name__ == "__main__":
-    main()
+    stats = main()
+    with open("stats_ppo.pkl", "wb") as f:
+        pickle.dump(stats, f)

@@ -19,7 +19,7 @@ class PPO:
         value_coef=0.5,
         entropy_coef=0.01,
         max_grad_norm=0.5,
-        device="cuda" if torch.cuda.is_available() else "cpu"
+        device="cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
     ):
         self.env = env
         self.gamma = gamma
@@ -32,7 +32,6 @@ class PPO:
         self.max_grad_norm = max_grad_norm
         self.device = device
         
-        # Déterminer si l'environnement est continu
         self.continuous = isinstance(env.action_space, gym.spaces.Box)
         
         if self.continuous:
@@ -42,7 +41,6 @@ class PPO:
         
         observation_shape = env.observation_space.shape
         
-        # Créer le réseau acteur-critique
         self.actor_critic = ActorCritic(
             observation_shape, self.action_dim, continuous=self.continuous
         ).to(device)
@@ -50,8 +48,7 @@ class PPO:
         self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=lr, eps=1e-5)
         
         self.buffer = RolloutBuffer()
-        
-        # ✅ NOUVEAU: Scheduler pour diminuer lr
+
         self.scheduler = optim.lr_scheduler.LinearLR(
             self.optimizer, start_factor=1.0, end_factor=0.1, total_iters=1000
         )
@@ -99,7 +96,7 @@ class PPO:
         advantages = torch.FloatTensor(advantages).unsqueeze(-1).to(self.device)
         returns = torch.FloatTensor(returns).unsqueeze(-1).to(self.device)
         
-        # ✅ NOUVEAU: Stocker les anciennes valeurs pour early stopping
+        # Stocker les anciennes valeurs pour early stopping
         with torch.no_grad():
             _, old_values, _ = self.actor_critic.evaluate_actions(states, actions)
         
@@ -133,7 +130,7 @@ class PPO:
                 # Ratio de politique
                 ratio = torch.exp(log_probs - batch_old_log_probs)
                 
-                # ✅ AMÉLIORATION: KL divergence pour early stopping
+                # KL divergence pour early stopping
                 with torch.no_grad():
                     kl_div = (batch_old_log_probs - log_probs).mean()
                     epoch_kl_div += kl_div.item()
@@ -143,7 +140,7 @@ class PPO:
                 surr2 = torch.clamp(ratio, 1 - self.clip_ratio, 1 + self.clip_ratio) * batch_advantages
                 policy_loss = -torch.min(surr1, surr2).mean()
                 
-                # ✅ AMÉLIORATION: Value clipping pour stabilité
+                # Value clipping pour stabilité
                 value_pred_clipped = old_values[batch_indices] + torch.clamp(
                     state_values - old_values[batch_indices],
                     -self.clip_ratio,
@@ -169,13 +166,13 @@ class PPO:
                 epoch_value_loss += value_loss.item()
                 num_batches += 1
             
-            # ✅ NOUVEAU: Early stopping si KL divergence trop grande
+            # Early stopping si KL divergence trop grande
             avg_kl_div = epoch_kl_div / num_batches
             if avg_kl_div > 0.015:  # Seuil de KL
                 print(f"Early stopping at epoch {epoch+1}/{self.epochs} (KL={avg_kl_div:.4f})")
                 break
         
-        # ✅ NOUVEAU: Update scheduler
+        # update scheduler
         self.scheduler.step()
         
         self.buffer.clear()
@@ -203,15 +200,15 @@ class PPO:
                 
                 next_state, reward, done, truncated, _ = self.env.step(action_np)
                 
-                # ✅ AMÉLIORATION: Reward shaping pour CarRacing
+                # eward shaping pour CarRacing
                 shaped_reward = reward
-                if reward == -0.1:  # Pénalité hors piste
-                    shaped_reward = -1.0  # Augmenter la pénalité
+                if reward == -0.1: 
+                    shaped_reward = -1.0 
                 
                 self.buffer.add(state, action_np, shaped_reward, log_prob_np, value_np, done or truncated)
                 
                 state = next_state
-                episode_reward += reward  # Reward réelle pour le log
+                episode_reward += reward  
                 timestep += 1
                 
                 if done or truncated:
@@ -230,12 +227,12 @@ class PPO:
                               f"Max: {max_reward:.2f} | "
                               f"Min: {min_reward:.2f} | "
                               f"LR: {current_lr:.2e}")
-                        # ✅ NOUVEAU: Sauvegarder le meilleur modèle
+                        # Sauvegarder le meilleur modèle
                         if avg_reward > best_avg_reward:
                             best_avg_reward = avg_reward
                             self.save("ppo_carracing_best.pth")
                     
-                    # ✅ NOUVEAU: Sauvegarde périodique
+                    # Sauvegarde périodique
                     if episode_count % save_interval == 0:
                         self.save(f"ppo_carracing_ep{episode_count}.pth")
                     
