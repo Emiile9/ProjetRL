@@ -7,12 +7,7 @@ from gymnasium.wrappers import (
 )
 
 
-def make_env(continuous: bool, render_mode="rgb_array", mode="train"):
-    if mode == "watch":
-        render_mode = "human"
-        max_episode_steps = 2000
-    else:
-        max_episode_steps = 1000
+def make_env(continuous: bool, render_mode="rgb_array", mode="train", max_episode_steps=1000):
     env = gym.make(
         "CarRacing-v3",
         render_mode=render_mode,
